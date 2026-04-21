@@ -1,0 +1,6 @@
+[
+  {
+    "question": "List all users",
+    "expected_sql": "SELECT * FROM users;"
+  }
+]
