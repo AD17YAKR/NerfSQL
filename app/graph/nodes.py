@@ -7,6 +7,20 @@ from app.validators.sql_guard import is_safe
 
 MAX_RETRIES = 3
 
+
+def _normalize_sql(sql: str) -> str:
+    cleaned = sql.strip()
+    if cleaned.startswith("```"):
+        lines = cleaned.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        cleaned = "\n".join(lines).strip()
+    if cleaned.lower().startswith("sql\n"):
+        cleaned = cleaned[4:].strip()
+    return cleaned
+
 class AgentState(TypedDict):
     question: str
     schema: str
@@ -18,7 +32,7 @@ class AgentState(TypedDict):
 def generate_sql(state: AgentState) -> AgentState:
     llm = get_llm()
     prompt = GENERATE_PROMPT.format(schema=state["schema"], question=state["question"])
-    sql = llm.invoke([HumanMessage(content=prompt)]).content.strip()
+    sql = _normalize_sql(llm.invoke([HumanMessage(content=prompt)]).content)
     return {**state, "sql": sql, "error": None}
 
 def validate_and_execute(state: AgentState) -> AgentState:
@@ -34,7 +48,7 @@ def validate_and_execute(state: AgentState) -> AgentState:
 def correct_sql(state: AgentState) -> AgentState:
     llm = get_llm()
     prompt = CORRECT_PROMPT.format(sql=state["sql"], error=state["error"], schema=state["schema"])
-    sql = llm.invoke([HumanMessage(content=prompt)]).content.strip()
+    sql = _normalize_sql(llm.invoke([HumanMessage(content=prompt)]).content)
     return {**state, "sql": sql, "retries": state["retries"] + 1}
 
 def should_retry(state: AgentState) -> str:

@@ -1,10 +1,10 @@
-from dotenv import load_dotenv
-load_dotenv(dotenv_path=".env")
-
 from dataclasses import dataclass
 from typing import Optional
+from app.core.config import settings  # ensures env is loaded once
 from app.graph.graph import build_graph
 from app.retriever.schema_retriever import SchemaRetriever
+
+_ = settings
 
 _graph = None
 _retriever = None

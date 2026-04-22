@@ -107,7 +107,7 @@ Correction Loop (LLM)
 - **Orchestration:** LangGraph
 - **LLM Inference:** Groq
 - **Embeddings:** SentenceTransformers / OpenAI-compatible
-- **Vector Store:** FAISS / Chroma
+- **Vector Store:** Pinecone (primary) + FAISS fallback
 - **Database:** PostgreSQL / MySQL / SQLite
 - **Backend:** Python (FastAPI optional)
 
@@ -166,16 +166,37 @@ pip install -r requirements.txt
 ```bash
 GROQ_API_KEY=your_key
 DB_URI=postgresql://user:password@localhost:5432/dbname
+PINECONE_API_KEY=your_key
+PINECONE_INDEX_NAME=sql-schema-rag
+PINECONE_NAMESPACE=default
+PINECONE_REGION=us-east-1
 ```
 
 ---
 
 ### Schema Ingestion
 
+Create and seed the local SQLite database from the provided sustainability schema:
+
+```bash
+python scripts/create_sample_db.py
+```
+
 ```bash
 python scripts/ingest_schema.py \
   --db_uri $DB_URI \
   --output data/schema_chunks.json
+```
+
+Optional flags:
+
+```bash
+python scripts/ingest_schema.py \
+   --db_uri $DB_URI \
+   --output data/schema_chunks.json \
+   --pinecone_index $PINECONE_INDEX_NAME \
+   --pinecone_namespace $PINECONE_NAMESPACE \
+   --pinecone_region $PINECONE_REGION
 ```
 
 This will:
@@ -208,12 +229,12 @@ print(response.result)
 **Input:**
 
 ```
-"List users who placed more than 5 orders last month"
+"Show total travel emissions per user in April 2026"
 ```
 
 **System:**
 
-1. Retrieves relevant tables (`users`, `orders`)
+1. Retrieves relevant tables (`travel_entries`, `users`, `emission_factors`)
 2. Generates SQL
 3. Executes → error (wrong column)
 4. Corrects query
