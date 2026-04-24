@@ -4,6 +4,7 @@ from app.llm.client import get_llm
 from app.llm.prompts import GENERATE_PROMPT, CORRECT_PROMPT
 from app.db.engine import execute_query
 from app.validators.sql_guard import is_safe
+from app.utils.toon import extract_sql_from_toon, schema_text_to_toon
 
 MAX_RETRIES = 3
 
@@ -31,8 +32,12 @@ class AgentState(TypedDict):
 
 def generate_sql(state: AgentState) -> AgentState:
     llm = get_llm()
-    prompt = GENERATE_PROMPT.format(schema=state["schema"], question=state["question"])
-    sql = _normalize_sql(llm.invoke([HumanMessage(content=prompt)]).content)
+    prompt = GENERATE_PROMPT.format(
+        schema_toon=schema_text_to_toon(state["schema"]),
+        question=state["question"],
+    )
+    raw = llm.invoke([HumanMessage(content=prompt)]).content
+    sql = _normalize_sql(extract_sql_from_toon(raw))
     return {**state, "sql": sql, "error": None}
 
 def validate_and_execute(state: AgentState) -> AgentState:
@@ -47,8 +52,13 @@ def validate_and_execute(state: AgentState) -> AgentState:
 
 def correct_sql(state: AgentState) -> AgentState:
     llm = get_llm()
-    prompt = CORRECT_PROMPT.format(sql=state["sql"], error=state["error"], schema=state["schema"])
-    sql = _normalize_sql(llm.invoke([HumanMessage(content=prompt)]).content)
+    prompt = CORRECT_PROMPT.format(
+        sql=state["sql"],
+        error=state["error"],
+        schema_toon=schema_text_to_toon(state["schema"]),
+    )
+    raw = llm.invoke([HumanMessage(content=prompt)]).content
+    sql = _normalize_sql(extract_sql_from_toon(raw))
     return {**state, "sql": sql, "retries": state["retries"] + 1}
 
 def should_retry(state: AgentState) -> str:

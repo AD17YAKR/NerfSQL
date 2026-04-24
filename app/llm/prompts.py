@@ -1,15 +1,24 @@
 GENERATE_PROMPT = """\
 You are a SQL expert. Given the schema below, write a single read-only SQL query.
-Return ONLY the SQL, no explanation.
+The schema is provided in TOON (Token-Oriented Object Notation).
+Return ONLY a TOON object with a single field named sql.
+
+Output format:
+sql: 'SELECT ...;'
 
 Schema:
-{schema}
+{schema_toon}
 
 Question: {question}
 """
 
 CORRECT_PROMPT = """\
-The following SQL query produced an error. Fix it and return ONLY the corrected SQL.
+The following SQL query produced an error. Fix it.
+The schema is provided in TOON (Token-Oriented Object Notation).
+Return ONLY a TOON object with a single field named sql.
+
+Output format:
+sql: 'SELECT ...;'
 
 SQL:
 {sql}
@@ -18,5 +27,5 @@ Error:
 {error}
 
 Schema:
-{schema}
+{schema_toon}
 """

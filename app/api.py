@@ -1,4 +1,5 @@
 import json
+import os
 import re
 
 from fastapi import FastAPI, HTTPException
@@ -29,10 +30,25 @@ def health():
 @app.post("/ingest", summary="Ingest database schema", tags=["Schema"])
 def ingest(req: IngestRequest = IngestRequest()):
     db_uri = req.db_uri or settings.db_uri
+    local_fallback = "sqlite:///data/local.db"
     if not db_uri:
-        raise HTTPException(status_code=400, detail="db_uri required")
+        if os.path.exists("data/local.db"):
+            db_uri = local_fallback
+        else:
+            raise HTTPException(status_code=400, detail="db_uri required")
     try:
         chunks = extract_schema(db_uri)
+    except Exception as e:
+        # For local development, fall back if configured DB credentials are invalid.
+        if req.db_uri is None and db_uri != local_fallback and os.path.exists("data/local.db"):
+            try:
+                chunks = extract_schema(local_fallback)
+                db_uri = local_fallback
+            except Exception:
+                raise HTTPException(status_code=500, detail=str(e))
+        else:
+            raise HTTPException(status_code=500, detail=str(e))
+    try:
         with open("data/schema_chunks.json", "w") as f:
             json.dump(chunks, f, indent=2)
         # reset retriever so it reloads fresh chunks
@@ -56,6 +72,7 @@ def ingest(req: IngestRequest = IngestRequest()):
             "ingested": len(chunks),
             "tables": [c.split("\n")[0].replace("Table: ", "") for c in chunks],
             "pinecone": pinecone_status,
+            "source_db_uri": db_uri,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

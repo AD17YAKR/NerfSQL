@@ -1,4 +1,4 @@
-# 📊 SQL-RAG Agent
+# NerfSQL
 
 **Schema-aware, self-correcting Text-to-SQL pipeline using LangGraph + Groq**
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-SQL-RAG Agent is a schema-aware text-to-SQL system that converts natural language queries into executable SQL, validates them against a live database, and iteratively corrects errors until a valid result is produced.
+NerfSQL is a schema-aware text-to-SQL system that converts natural language queries into executable SQL, validates them against a live database, and iteratively corrects errors until a valid result is produced.
 
 The system uses:
 
@@ -19,6 +19,12 @@ The system uses:
 ---
 
 ## Key Features
+
+### TOON-Based LLM I/O
+
+- LLM-facing schema context is serialized in **TOON** (Token-Oriented Object Notation)
+- SQL generation and correction prompts require TOON responses with a `sql` field
+- Internal parser extracts SQL deterministically from TOON output
 
 ### 1. Schema-Aware Retrieval
 
@@ -116,7 +122,7 @@ Correction Loop (LLM)
 ## Project Structure
 
 ```
-sql-rag-agent/
+NerfSQL/
 │
 ├── app/
 │   ├── graph/              # LangGraph nodes and edges
@@ -148,8 +154,8 @@ sql-rag-agent/
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/sql-rag-agent.git
-cd sql-rag-agent
+git clone https://github.com/AD17YAKR/NerfSQL.git
+cd NerfSQL
 
 python -m venv venv
 source venv/bin/activate
@@ -165,7 +171,7 @@ pip install -r requirements.txt
 
 ```bash
 GROQ_API_KEY=your_key
-DB_URI=postgresql://user:password@localhost:5432/dbname
+DB_URI=sqlite:///data/local.db
 PINECONE_API_KEY=your_key
 PINECONE_INDEX_NAME=sql-schema-rag
 PINECONE_NAMESPACE=default
