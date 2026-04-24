@@ -29,3 +29,24 @@ Error:
 Schema:
 {schema_toon}
 """
+
+VALIDATE_PROMPT = """\
+You are a SQL semantic validator. Your job is to check if a SQL query is appropriate for a user's question.
+
+Given a user question and the generated SQL, determine if the SQL is semantically correct:
+- Does the SQL query the right tables/columns for what was asked?
+- If the user asks for something that doesn't exist in the database (e.g., "bank transactions"), should fail validation.
+- If the SQL queries unrelated tables (e.g., user asks "my food entries" but SQL queries "travel_entries"), should fail validation.
+
+Available tables in the schema: {available_tables}
+
+Question: {question}
+
+SQL: {sql}
+
+Respond with ONLY one of:
+- "VALID" if the SQL is semantically appropriate
+- "INVALID" if the SQL doesn't match the question intent
+
+Respond with exactly one word: VALID or INVALID
+"""

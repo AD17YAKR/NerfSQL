@@ -77,7 +77,25 @@
           "mode": "raw",
           "raw": "{\n  \"question\": \"List all users and their country codes\"\n}"
         },
-        "description": "Converts a natural language question to SQL, executes it, and returns the result. Will self-correct up to 3 times on error."
+        "description": "Converts a natural language question to SQL, executes it, and returns the result. Will self-correct up to 3 times on error. Response includes a chat_id for conversation tracking."
+      }
+    },
+    {
+      "name": "5a. Resume Chat by ID",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/query?chat_id=984b553e-da34-4ad5-b9b5-773b4a062d87",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"question\": \"Show me something related to the previous query\"\n}"
+        },
+        "description": "Continue a previous conversation by passing the chat_id as a query parameter. Replace the chat_id with an actual one from a previous response."
       }
     },
     {
@@ -112,6 +130,22 @@
           "mode": "raw",
           "raw": "{\n  \"question\": \"List users with their household names and latest monthly total CO2e\"\n}"
         }
+      }
+    },
+    {
+      "name": "8. View Chat History — List All",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/history",
+        "description": "Returns metadata for all active chat sessions, including chat_id, creation time, and message counts."
+      }
+    },
+    {
+      "name": "9. View Chat History — Specific Chat",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/history/984b553e-da34-4ad5-b9b5-773b4a062d87",
+        "description": "Returns the full conversation history for a specific chat_id (first query + last 4 queries + last 4 responses). Replace the chat_id in the URL with an actual one from a previous query response or /history endpoint."
       }
     }
   ]

@@ -2,10 +2,10 @@ import json
 import os
 import re
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from app.core.config import settings
-from app.main import QueryResponse, query_agent
+from app.main import QueryResponse, query_agent, _session_manager
 from scripts.ingest_schema import extract_schema, upsert_schema_chunks_to_pinecone
 
 app = FastAPI(title="SQL-RAG Agent", description="Natural language to SQL agent powered by RAG", version="1.0.0")
@@ -87,12 +87,37 @@ def schema():
         raise HTTPException(status_code=404, detail="Schema not ingested yet. Call POST /ingest first.")
 
 @app.post("/query", summary="Run a natural language query", tags=["Query"])
-def query(req: QueryRequest):
-    resp: QueryResponse = query_agent(req.question)
-    return {
-        "sql": _compact_sql(resp.sql),
-        "sql_raw": resp.sql,
-        "result": resp.result,
+def query(req: QueryRequest, chat_id: str | None = Query(None)):
+    resp: QueryResponse = query_agent(req.question, chat_id=chat_id)
+
+    # Build response conditionally
+    response_data = {
+        "chat_id": resp.chat_id,
         "error": resp.error,
         "retries": resp.retries,
     }
+
+    # Only include SQL fields if SQL was successfully generated
+    if resp.sql.strip():
+        response_data["sql"] = _compact_sql(resp.sql)
+        response_data["sql_raw"] = resp.sql
+
+    # Include result if available
+    if resp.result is not None:
+        response_data["result"] = resp.result
+
+    return response_data
+
+@app.get("/history", summary="List all active chat sessions", tags=["History"])
+def history():
+    """Returns metadata for all active chat sessions."""
+    sessions = _session_manager.list_sessions()
+    return {"chats": sessions}
+
+@app.get("/history/{chat_id}", summary="Get conversation history for a chat", tags=["History"])
+def history_detail(chat_id: str):
+    """Returns the full conversation history (first query + last 4 queries + last 4 responses)."""
+    history = _session_manager.get_chat_history(chat_id)
+    if history is None:
+        raise HTTPException(status_code=404, detail=f"Chat {chat_id} not found")
+    return history
