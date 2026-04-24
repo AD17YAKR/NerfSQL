@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.main import QueryResponse, query_agent
 from scripts.ingest_schema import extract_schema, upsert_schema_chunks_to_pinecone
 
-app = FastAPI(title="SQL-RAG Agent")
+app = FastAPI(title="SQL-RAG Agent", description="Natural language to SQL agent powered by RAG", version="1.0.0")
 
 class QueryRequest(BaseModel):
     question: str
@@ -15,16 +15,18 @@ class QueryRequest(BaseModel):
 class IngestRequest(BaseModel):
     db_uri: str | None = None  # defaults to DB_URI from .env if omitted
 
+    model_config = {"json_schema_extra": {"examples": [{"db_uri": "postgresql://user:pass@localhost/mydb"}]}}
+
 
 def _compact_sql(sql: str) -> str:
     # Deterministic API-side formatting for JSON clients.
     return re.sub(r"\s+", " ", (sql or "")).strip()
 
-@app.get("/health")
+@app.get("/health", summary="Health check", tags=["Utility"])
 def health():
     return {"status": "ok"}
 
-@app.post("/ingest")
+@app.post("/ingest", summary="Ingest database schema", tags=["Schema"])
 def ingest(req: IngestRequest = IngestRequest()):
     db_uri = req.db_uri or settings.db_uri
     if not db_uri:
@@ -58,7 +60,7 @@ def ingest(req: IngestRequest = IngestRequest()):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/schema")
+@app.get("/schema", summary="Retrieve ingested schema chunks", tags=["Schema"])
 def schema():
     try:
         with open("data/schema_chunks.json") as f:
@@ -67,7 +69,7 @@ def schema():
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Schema not ingested yet. Call POST /ingest first.")
 
-@app.post("/query")
+@app.post("/query", summary="Run a natural language query", tags=["Query"])
 def query(req: QueryRequest):
     resp: QueryResponse = query_agent(req.question)
     return {
