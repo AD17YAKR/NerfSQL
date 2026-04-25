@@ -57,15 +57,24 @@ def extract_sql_from_toon(raw_output: str) -> str:
     except ValueError:
         pass
 
-    triple = re.search(r"(?is)^\s*sql\s*:\s*\"\"\"\s*(.*?)\s*\"\"\"", text, re.MULTILINE)
-    if triple:
-        return triple.group(1).strip()
+    # Bare multiline: sql: SELECT ...\n... (no surrounding quotes — preferred format)
+    bare = re.search(r"(?im)^\s*sql\s*:\s*(SELECT\b.*)", text, re.DOTALL)
+    if bare:
+        return bare.group(1).strip().rstrip("'\"")
 
-    single = re.search(r"(?is)^\s*sql\s*:\s*'(.*?)'\s*$", text, re.MULTILINE)
+    triple_single = re.search(r"(?is)sql\s*:\s*'''(.*?)'''", text, re.DOTALL)
+    if triple_single:
+        return triple_single.group(1).strip()
+
+    triple_double = re.search(r'(?is)sql\s*:\s*"""(.*?)"""', text, re.DOTALL)
+    if triple_double:
+        return triple_double.group(1).strip()
+
+    single = re.search(r"(?is)^\s*sql\s*:\s*'(.*?)'\s*$", text, re.MULTILINE | re.DOTALL)
     if single:
         return single.group(1).strip()
 
-    double = re.search(r'(?is)^\s*sql\s*:\s*"(.*?)"\s*$', text, re.MULTILINE)
+    double = re.search(r'(?is)^\s*sql\s*:\s*"(.*?)"\s*$', text, re.MULTILINE | re.DOTALL)
     if double:
         return double.group(1).strip()
 

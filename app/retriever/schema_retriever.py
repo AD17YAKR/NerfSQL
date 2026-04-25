@@ -3,13 +3,13 @@ import json
 import faiss
 import numpy as np
 from pinecone import Pinecone
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 from app.core.config import settings
 
 class SchemaRetriever:
     def __init__(self, chunks_path: str = "data/schema_chunks.json", top_k: int = 5):
         self.top_k = top_k
-        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        self.model = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
         self.pinecone_api_key = settings.pinecone_api_key
         self.pinecone_index_name = settings.pinecone_index_name
         self.pinecone_namespace = settings.pinecone_namespace
@@ -25,14 +25,14 @@ class SchemaRetriever:
         with open(chunks_path) as f:
             self.chunks: list[str] = json.load(f)
         if self.chunks:
-            embeddings = self.model.encode(self.chunks, convert_to_numpy=True)
+            embeddings = np.array(list(self.model.embed(self.chunks)))
             self.index = faiss.IndexFlatL2(embeddings.shape[1])
             self.index.add(embeddings.astype(np.float32))
         else:
             self.index = None
 
     def retrieve(self, query: str) -> str:
-        vec = self.model.encode([query], convert_to_numpy=True).astype(np.float32)[0]
+        vec = np.array(list(self.model.embed([query])), dtype=np.float32)[0]
 
         if self.pinecone_index is not None:
             try:

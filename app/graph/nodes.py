@@ -21,7 +21,14 @@ def _normalize_sql(sql: str) -> str:
         cleaned = "\n".join(lines).strip()
     if cleaned.lower().startswith("sql\n"):
         cleaned = cleaned[4:].strip()
-    return cleaned
+    # Strip any residual ''' wrapping the LLM emitted despite instructions
+    if cleaned.startswith("'''"):
+        cleaned = cleaned[3:]
+    if cleaned.endswith("'''") or cleaned.endswith("''''"):
+        cleaned = cleaned.rstrip("'")
+    # Fix doubled single-quotes from old TOON wrapping artifact (''value'' -> 'value')
+    cleaned = re.sub(r"''([^']+)''", r"'\1'", cleaned)
+    return cleaned.strip()
 
 class AgentState(TypedDict):
     question: str

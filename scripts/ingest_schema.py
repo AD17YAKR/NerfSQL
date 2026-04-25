@@ -6,7 +6,7 @@ from typing import Any
 
 import numpy as np
 from pinecone import Pinecone, ServerlessSpec
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 from sqlalchemy import create_engine, inspect
 
 try:
@@ -64,9 +64,8 @@ def upsert_schema_chunks_to_pinecone(
     if not chunks:
         return 0
 
-    model = SentenceTransformer(EMBEDDING_MODEL)
-    embeddings = model.encode(chunks, convert_to_numpy=True)
-    embeddings = np.asarray(embeddings, dtype=np.float32)
+    model = TextEmbedding(EMBEDDING_MODEL)
+    embeddings = np.array(list(model.embed(chunks)), dtype=np.float32)
     dimension = int(embeddings.shape[1])
 
     pc = Pinecone(api_key=api_key)

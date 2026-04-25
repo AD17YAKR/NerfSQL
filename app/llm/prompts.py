@@ -3,8 +3,13 @@ You are a SQL expert. Given the schema below, write a single read-only SQL query
 The schema is provided in TOON (Token-Oriented Object Notation).
 Return ONLY a TOON object with a single field named sql.
 
+Rules:
+- Write the SQL value with NO surrounding quotes of any kind.
+- Use single quotes only for string literals inside the SQL (e.g. WHERE category = 'food').
+- Write table names, column names, and aliases bare with no quotes.
+
 Output format:
-sql: 'SELECT ...;'
+sql: SELECT ...;
 
 Schema:
 {schema_toon}
@@ -16,6 +21,11 @@ CORRECT_PROMPT = """\
 The following SQL query produced an error. Fix it.
 The schema is provided in TOON (Token-Oriented Object Notation).
 Return ONLY a TOON object with a single field named sql.
+
+Rules:
+- Write the SQL value with NO surrounding quotes of any kind.
+- Use single quotes only for string literals inside the SQL (e.g. WHERE category = 'food').
+- Write table names, column names, and aliases bare with no quotes.
 
 Output format:
 sql: 'SELECT ...;'
