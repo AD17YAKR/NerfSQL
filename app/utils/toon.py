@@ -16,24 +16,38 @@ def schema_text_to_toon(schema_text: str) -> str:
         if line.startswith("Table: "):
             if current:
                 tables.append(current)
-            current = {
-                "name": line.replace("Table: ", "", 1).strip(),
-                "columns": [],
-                "foreign_keys": [],
-            }
+            current = {"name": line.replace("Table: ", "", 1).strip(), "columns": [], "foreign_keys": []}
             continue
 
         if current is None:
             continue
 
         if line.startswith("Columns: "):
-            cols = line.replace("Columns: ", "", 1).strip()
-            current["columns"] = [c.strip() for c in cols.split(",") if c.strip()]
+            current["columns"] = [c.strip() for c in line.replace("Columns: ", "", 1).split(",") if c.strip()]
+            continue
+
+        if line.startswith("Description: "):
+            current["description"] = line.replace("Description: ", "", 1).strip()
+            continue
+
+        if line.startswith("Primary key: "):
+            current["primary_key"] = line.replace("Primary key: ", "", 1).strip()
             continue
 
         if line.startswith("Foreign keys: "):
-            fks = line.replace("Foreign keys: ", "", 1).strip()
-            current["foreign_keys"] = [fk.strip() for fk in fks.split(";") if fk.strip()]
+            current["foreign_keys"] = [fk.strip() for fk in line.replace("Foreign keys: ", "", 1).split(";") if fk.strip()]
+            continue
+
+        if line.startswith("Unique constraints: "):
+            current["unique_constraints"] = [u.strip() for u in line.replace("Unique constraints: ", "", 1).split(";") if u.strip()]
+            continue
+
+        if line.startswith("Check constraints: "):
+            current["check_constraints"] = [c.strip() for c in line.replace("Check constraints: ", "", 1).split(";") if c.strip()]
+            continue
+
+        if line.startswith("Indexes: "):
+            current["indexes"] = [i.strip() for i in line.replace("Indexes: ", "", 1).split(",") if i.strip()]
 
     if current:
         tables.append(current)

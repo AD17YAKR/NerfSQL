@@ -14,7 +14,7 @@ try:
 except ModuleNotFoundError:
     from dotenv import load_dotenv
 
-    load_dotenv(dotenv_path=".env")
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
     class _ScriptSettings:
         pinecone_api_key = os.environ.get("PINECONE_API_KEY")
@@ -32,11 +32,51 @@ def extract_schema(db_uri: str) -> list[str]:
     inspector = inspect(engine)
     chunks = []
     for table in inspector.get_table_names():
-        cols = [c["name"] for c in inspector.get_columns(table)]
-        fks = [f"{fk['constrained_columns']} -> {fk['referred_table']}" for fk in inspector.get_foreign_keys(table)]
+        columns = inspector.get_columns(table)
+        cols = [f"{c['name']} ({str(c['type'])})" for c in columns]
+
+        pk = inspector.get_pk_constraint(table)
+        pk_cols = pk.get("constrained_columns", []) if pk else []
+
+        fks = [
+            f"{fk['constrained_columns']} -> {fk['referred_table']}.{fk['referred_columns']}"
+            for fk in inspector.get_foreign_keys(table)
+        ]
+
+        unique = [
+            f"{u['column_names']}"
+            for u in inspector.get_unique_constraints(table)
+        ]
+
+        check = [
+            cc["sqltext"] for cc in inspector.get_check_constraints(table)
+        ]
+
+        indexes = [
+            f"{idx['name']}({idx['column_names']})"
+            for idx in inspector.get_indexes(table)
+            if not idx.get("unique")  # unique indexes already captured above
+        ]
+
+        try:
+            comment = inspector.get_table_comment(table).get("text") or ""
+        except Exception:
+            comment = ""
+
         chunk = f"Table: {table}\nColumns: {', '.join(cols)}"
+        if comment:
+            chunk += f"\nDescription: {comment}"
+        if pk_cols:
+            chunk += f"\nPrimary key: {pk_cols}"
         if fks:
             chunk += f"\nForeign keys: {'; '.join(fks)}"
+        if unique:
+            chunk += f"\nUnique constraints: {'; '.join(unique)}"
+        if check:
+            chunk += f"\nCheck constraints: {'; '.join(check)}"
+        if indexes:
+            chunk += f"\nIndexes: {', '.join(indexes)}"
+
         chunks.append(chunk)
     return chunks
 

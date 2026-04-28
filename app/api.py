@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,9 +58,12 @@ def health():
 @app.post("/ingest", summary="Ingest database schema", tags=["Schema"])
 def ingest(req: IngestRequest = IngestRequest()):
     db_uri = req.db_uri or settings.db_uri
-    local_fallback = "sqlite:///data/local.db"
+    _root = Path(__file__).resolve().parent.parent
+    _local_db = _root / "data" / "local.db"
+    _chunks_path = _root / "data" / "schema_chunks.json"
+    local_fallback = f"sqlite:///{_local_db}"
     if not db_uri:
-        if os.path.exists("data/local.db"):
+        if _local_db.exists():
             db_uri = local_fallback
         else:
             raise HTTPException(status_code=400, detail="db_uri required")
@@ -67,7 +71,7 @@ def ingest(req: IngestRequest = IngestRequest()):
         chunks = extract_schema(db_uri)
     except Exception as e:
         # For local development, fall back if configured DB credentials are invalid.
-        if req.db_uri is None and db_uri != local_fallback and os.path.exists("data/local.db"):
+        if req.db_uri is None and db_uri != local_fallback and _local_db.exists():
             try:
                 chunks = extract_schema(local_fallback)
                 db_uri = local_fallback
@@ -76,7 +80,7 @@ def ingest(req: IngestRequest = IngestRequest()):
         else:
             raise HTTPException(status_code=500, detail=str(e))
     try:
-        with open("data/schema_chunks.json", "w") as f:
+        with open(_chunks_path, "w") as f:
             json.dump(chunks, f, indent=2)
         # reset retriever so it reloads fresh chunks
         import app.main as _main
@@ -106,8 +110,9 @@ def ingest(req: IngestRequest = IngestRequest()):
 
 @app.get("/schema", summary="Retrieve ingested schema chunks", tags=["Schema"])
 def schema():
+    _chunks_path = Path(__file__).resolve().parent.parent / "data" / "schema_chunks.json"
     try:
-        with open("data/schema_chunks.json") as f:
+        with open(_chunks_path) as f:
             chunks = json.load(f)
         return {"count": len(chunks), "chunks": chunks}
     except FileNotFoundError:

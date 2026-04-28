@@ -176,7 +176,33 @@ PINECONE_API_KEY=your_key
 PINECONE_INDEX_NAME=sql-schema-rag
 PINECONE_NAMESPACE=default
 PINECONE_REGION=us-east-1
+RERANKER_ENABLED=true
+RERANKER_MODEL=cross-encoder/ms-marco-MiniLM-L6-v2
+RETRIEVER_TOP_K=5
+RETRIEVER_FETCH_K=20
 ```
+
+### Optional: Cross-Encoder Reranking
+
+You can enable a reranker to re-score retrieved schema chunks before they are sent to the LLM.
+
+Suggested models:
+
+- cross-encoder/ms-marco-TinyBERT-L2-v2 (faster, lower quality)
+- cross-encoder/ms-marco-MiniLM-L6-v2 (slower, usually better quality)
+
+Note: these aliases are automatically mapped to FastEmbed-compatible cross-encoder IDs internally.
+
+When enabled:
+
+- retrieval precision usually improves, especially on ambiguous questions
+- latency increases because each query runs extra cross-encoder inference
+
+Typical tuning:
+
+- keep RETRIEVER_TOP_K small (for example 5)
+- increase RETRIEVER_FETCH_K (for example 20 to 40) so reranker has enough candidates
+- start with MiniLM-L6-v2, then switch to TinyBERT-L2-v2 if latency is too high
 
 ---
 

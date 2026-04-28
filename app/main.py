@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from typing import Optional
 from app.core.config import settings  # ensures env is loaded once
@@ -20,7 +21,9 @@ def _get_graph():
 def _get_retriever():
     global _retriever
     if _retriever is None:
-        _retriever = SchemaRetriever()
+        top_k = int(os.environ.get("RETRIEVER_TOP_K", "5"))
+        fetch_k = int(os.environ.get("RETRIEVER_FETCH_K", str(top_k * 4)))
+        _retriever = SchemaRetriever(top_k=top_k, fetch_k=fetch_k)
     return _retriever
 
 @dataclass
